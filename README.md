@@ -35,3 +35,8 @@ git get -o ~/.local/bin/ b1f6c1c4/protect -- protect
     ```bash
     protect --disarm <folder>...
     ```
+
+## Compatability
+
+- `git`
+- `docker`

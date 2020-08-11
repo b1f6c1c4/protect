@@ -1,7 +1,6 @@
 #!/bin/sh
 
 PROTECT_FOLDER="..!!protect"
-PROTECT_FILE="..!!protect/.gitignore"
 
 DISARM=
 if [ "$#" -gt 0 ] && [ "$1" = "--disarm" ]; then
@@ -15,22 +14,42 @@ if [ "$#" -eq 0 ]; then
     exit 1
 fi
 
+arm() {
+    umask 022 && \
+    mkdir "$1/$PROTECT_FOLDER" && \
+    echo '*' >"$1/$PROTECT_FOLDER/.gitignore" && \
+    echo '*' >"$1/$PROTECT_FOLDER/.dockerignore" && \
+    chmod -w "$1/$PROTECT_FOLDER"
+}
+
+disarm() {
+    umask 022 && \
+    chmod +w "$1/$PROTECT_FOLDER" && \
+    rm -f "$1/$PROTECT_FOLDER/.gitignore" && \
+    rm -f "$1/$PROTECT_FOLDER/.dockerignore" && \
+    rmdir "$1/$PROTECT_FOLDER"
+}
+
 ERRORED=
 while [ "$#" -ne 0 ]; do
     if [ ! -d "$1" ]; then
         echo 'Warning: This is not an exisiting folder:' "$1"
     elif [ -z "$DISARM" ]; then
-        if chmod o+w "$1/$PROTECT_FOLDER" && rm "$1/$PROTECT_FILE" && rmdir "$1/$PROTECT_FOLDER"; then
-            echo 'Information: No longer protecting:' "$1"
-        else
-            echo 'Error: Cannot disable protection for:' "$1"
-            ERRORED=YES
-        fi
-    else
-        if mkdir "$1/$PROTECT_FOLDER" && echo '*' >"$1/$PROTECT_FILE" && chmod -w "$1/$PROTECT_FOLDER"; then
+        if [ -d "$1/$PROTECT_FOLDER" ]; then
+            echo 'Warning: Folder already under protection:' "$1"
+        elif arm "$@"; then
             echo 'Information: Now protecting:' "$1"
         else
             echo 'Error: Cannot enable protection for:' "$1"
+            ERRORED=YES
+        fi
+    else
+        if [ ! -d "$1/$PROTECT_FOLDER" ]; then
+            echo 'Warning: Folder not yet under protection:' "$1"
+        elif disarm "$@"; then
+            echo 'Information: No longer protecting:' "$1"
+        else
+            echo 'Error: Cannot disable protection for:' "$1"
             ERRORED=YES
         fi
     fi
