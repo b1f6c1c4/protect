@@ -1,0 +1,44 @@
+#!/bin/sh
+
+PROTECT_FOLDER="..!!protect"
+PROTECT_FILE="..!!protect/.gitignore"
+
+DISARM=
+if [ "$#" -gt 0 ] && [ "$1" = "--disarm" ]; then
+    DISARM=YES
+    shift
+fi
+
+if [ "$#" -eq 0 ]; then
+    echo 'Usage: protect <folder>...' >&2
+    echo 'Usage: protect --disarm <folder>...' >&2
+    exit 1
+fi
+
+ERRORED=
+while [ "$#" -ne 0 ]; do
+    if [ ! -d "$1" ]; then
+        echo 'Warning: This is not an exisiting folder:' "$1"
+    elif [ -z "$DISARM" ]; then
+        if chmod o+w "$1/$PROTECT_FOLDER" && rm "$1/$PROTECT_FILE" && rmdir "$1/$PROTECT_FOLDER"; then
+            echo 'Information: No longer protecting:' "$1"
+        else
+            echo 'Error: Cannot disable protection for:' "$1"
+            ERRORED=YES
+        fi
+    else
+        if mkdir "$1/$PROTECT_FOLDER" && echo '*' >"$1/$PROTECT_FILE" && chmod -w "$1/$PROTECT_FOLDER"; then
+            echo 'Information: Now protecting:' "$1"
+        else
+            echo 'Error: Cannot enable protection for:' "$1"
+            ERRORED=YES
+        fi
+    fi
+    shift
+done
+
+if [ -z "$ERRORED" ]; then
+    exit 0
+else
+    exit 1
+fi
